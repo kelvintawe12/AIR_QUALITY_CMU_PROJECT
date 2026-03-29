@@ -1,0 +1,35 @@
+# Node
+**/node_modules/
+**/.pnp
+.pnp.js
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+*.pickle
+
+# Env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+
+# Data
+data/*.csv
+dataset/*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
