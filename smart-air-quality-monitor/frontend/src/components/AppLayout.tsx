@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Wind, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Toaster } from 'sonner';
-// import { useDummyData } from '../hooks/useDummyData';
+import { useDummyData } from '../hooks/useDummyData';
 import { MobileNav } from './MobileNav';
 import { AlertModal } from './AlertModal';
 import { Sidebar } from './Sidebar';
@@ -15,10 +15,8 @@ export interface AppContextType {
   status: 'connected' | 'disconnected' | 'reconnecting';
 }
 export function AppLayout() {
-  // TODO: Replace with useWebSocket when implemented
-  const data = null;
-  const history = [];
-  const status = 'disconnected';
+  // Use dummy data for dashboard
+  const { data, history, status } = useDummyData();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex flex-col">

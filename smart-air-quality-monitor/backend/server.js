@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const chalk = require('chalk');
 const http = require('http');
 const { Server } = require('socket.io');
 const { SerialPort } = require('serialport');
@@ -24,7 +25,9 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  const statusCode = 200;
+  res.status(statusCode).json({ status: 'ok', time: new Date().toISOString() });
+  console.log(chalk.blue(`[HTTP ${statusCode}] /health - Success`));
 });
 
 // ML prediction function
@@ -58,18 +61,52 @@ function getRiskPrediction(mq135, mq7, temp, hum) {
   });
 }
 
-// Serial Connection
+// Serial Connection with detailed logging and reconnection
 let arduinoPort;
+let arduinoConnected = false;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY_MS = 5000;
 
 function connectToArduino() {
-  arduinoPort = new SerialPort({ path: SERIAL_PORT_NAME, baudRate: BAUD_RATE });
+  console.log(chalk.blue(`[Serial] Attempting to connect to Arduino on ${SERIAL_PORT_NAME} at ${BAUD_RATE} baud...`));
+  arduinoPort = new SerialPort({ path: SERIAL_PORT_NAME, baudRate: BAUD_RATE, autoOpen: false });
   const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
 
-  arduinoPort.on('open', () => {
-    console.log(`✅ Connected to Arduino on ${SERIAL_PORT_NAME}`);
+  arduinoPort.open((err) => {
+    if (err) {
+      arduinoConnected = false;
+      reconnectAttempts++;
+      const statusCode = 500;
+      console.error(chalk.red(`[SERIAL ERROR] [${statusCode}] Failed to open serial port: ${err.message}`));
+      if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+        console.log(chalk.blue(`🔄 Reconnecting in ${RECONNECT_DELAY_MS / 1000}s (Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`));
+        setTimeout(connectToArduino, RECONNECT_DELAY_MS);
+      } else {
+        console.error(chalk.red(`[${statusCode}] ❌ Max reconnect attempts reached. Please check your Arduino connection and SERIAL_PORT setting.`));
+      }
+      return;
+    }
+    arduinoConnected = true;
+    reconnectAttempts = 0;
+    const statusCode = 200;
+    console.log(chalk.blue(`[SERIAL CONNECTED] [${statusCode}] Successfully connected to Arduino on ${SERIAL_PORT_NAME}`));
+    io.emit('arduinoStatus', { status: 'connected', port: SERIAL_PORT_NAME, statusCode });
   });
+
+  arduinoPort.on('close', () => {
+    arduinoConnected = false;
+    const statusCode = 503;
+    console.warn(chalk.red(`[SERIAL CLOSED] [${statusCode}] Arduino serial port closed. Attempting to reconnect...`));
+    io.emit('arduinoStatus', { status: 'disconnected', statusCode });
+    setTimeout(connectToArduino, RECONNECT_DELAY_MS);
+  });
+
   arduinoPort.on('error', (err) => {
-    console.error('[SERIAL ERROR] Serial port error:', err.message);
+    arduinoConnected = false;
+    const statusCode = 500;
+    console.error(chalk.red(`[SERIAL ERROR] [${statusCode}] Serial port error:`), chalk.red(err.message));
+    io.emit('arduinoStatus', { status: 'error', message: err.message, statusCode });
   });
 
   parser.on('data', async (line) => {
@@ -78,7 +115,8 @@ function connectToArduino() {
 
     const parts = dataLine.split('|').map(p => p.trim());
     if (parts.length < 6) {
-      console.warn('[DATA WARNING] Incomplete data received:', dataLine);
+      const statusCode = 400;
+      console.warn(chalk.red(`[DATA WARNING] [${statusCode}] Incomplete data received:`), chalk.red(dataLine));
       return;
     }
 
@@ -104,10 +142,12 @@ function connectToArduino() {
         risk
       };
 
-      io.emit('sensorData', sensorData);
-      console.log(`[DATA] ${temperature}°C | ${humidity}% | AQ: ${aqStatus} | CO: ${coStatus} | Risk: ${risk}`);
+      const statusCode = 200;
+      io.emit('sensorData', { ...sensorData, statusCode });
+      console.log(chalk.blue(`[DATA RECEIVED] [${statusCode}] ${temperature}°C | ${humidity}% | AQ: ${aqStatus} | CO: ${coStatus} | Risk: ${risk}`));
     } catch (err) {
-      console.error('[PROCESSING ERROR] Error processing data:', err);
+      const statusCode = 500;
+      console.error(chalk.red(`[PROCESSING ERROR] [${statusCode}] Error processing data:`), chalk.red(err));
     }
   });
 }
@@ -116,16 +156,38 @@ connectToArduino();
 
 // WebSocket connections
 io.on('connection', (socket) => {
-  console.log('🌐 Frontend connected:', socket.id);
-  socket.emit('status', 'Connected to Smart Air Quality System');
+  const statusCode = 101; // WebSocket Switching Protocols
+  const backendUrl = `http://localhost:${PORT}`;
+  const timestamp = new Date().toISOString();
+  const clientIp = socket.handshake.address || 'unknown';
+  const totalConnections = io.engine.clientsCount;
+  console.log(chalk.blue(`[WS ${statusCode}] Frontend connected: ${socket.id}`));
+  console.log(chalk.blue(`[Frontend Connection] Time: ${timestamp}`));
+  console.log(chalk.blue(`[Frontend Connection] Client IP: ${clientIp}`));
+  console.log(chalk.blue(`[Frontend Connection] WebSocket client connected on backend port: ${PORT}`));
+  console.log(chalk.blue(`[Frontend Connection] Access backend at: ${backendUrl}`));
+  console.log(chalk.blue(`[Frontend Connection] Total active frontend connections: ${totalConnections}`));
+  socket.emit('status', { message: 'Connected to Smart Air Quality System', statusCode });
   socket.on('disconnect', () => {
-    console.log('🔌 Frontend disconnected:', socket.id);
+    const statusCode = 1001; // WebSocket Going Away
+    const disconnectTime = new Date().toISOString();
+    const remainingConnections = io.engine.clientsCount - 1;
+    console.log(chalk.red(`[WS ${statusCode}] Frontend disconnected: ${socket.id}`));
+    console.log(chalk.red(`[Frontend Disconnection] Time: ${disconnectTime}`));
+    console.log(chalk.red(`[Frontend Disconnection] Client IP: ${clientIp}`));
+    console.log(chalk.red(`[Frontend Disconnection] Remaining active frontend connections: ${remainingConnections}`));
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Backend ready at http://localhost:${PORT}`);
-  console.log('⚠️  Close Arduino IDE Serial Monitor first!');
-  console.log('💡 Set SERIAL_PORT in .env if not auto-detected');
+  console.log(chalk.blue('=============================================='));
+  console.log(chalk.blue(`Backend server started successfully!`));
+  console.log(chalk.blue(`Listening on:   http://localhost:${PORT}`));
+  console.log(chalk.blue('----------------------------------------------'));
+  console.log(chalk.blue(`ML Script:      ${ML_SCRIPT}`));
+  console.log(chalk.blue(`Serial Port:    ${SERIAL_PORT_NAME} @ ${BAUD_RATE} baud`));
+  console.log(chalk.blue('=============================================='));
+  console.log(chalk.blue('Make sure the Arduino IDE Serial Monitor is CLOSED!'));
+  console.log(chalk.blue('Set SERIAL_PORT in .env if not auto-detected.'));
 });
 

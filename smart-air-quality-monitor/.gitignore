@@ -1,35 +1,47 @@
-# Node
+
+# Node.js
+node_modules/
 **/node_modules/
-**/.pnp
-.pnp.js
+.pnp*
+dist/
+build/
+coverage/
 
 # Python
+__pycache__/
 **/__pycache__/
 *.py[cod]
 *$py.class
 *.pkl
 *.pickle
+ml/__pycache__/
+ml/*.pkl
 
-# Env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files
+.env*
+**/.env*
 
 # Logs
 logs/
 *.log
+**/*.log
 
 # Data
 data/*.csv
 dataset/*.csv
+ml/dataset/*.csv
 
 # OS
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE/editor
 .vscode/
 .idea/
+*.swp
+*.swo
+.history/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
 
