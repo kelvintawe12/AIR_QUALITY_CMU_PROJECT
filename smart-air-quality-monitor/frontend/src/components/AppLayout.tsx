@@ -16,10 +16,10 @@ export interface AppContextType {
 }
 export function AppLayout() {
   // Use dummy data for dashboard
-  const { data, history, status } = useDummyData();
+  const { data, history, status, user } = useDummyData();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#0a0f1c] font-sans flex flex-col">
       <Toaster position="top-center" />
 
       {/* Real-time Danger Alert Modal */}
@@ -115,7 +115,8 @@ export function AppLayout() {
               context={{
                 data,
                 history,
-                status
+                status,
+                user
               }} />
           </main>
           {/* Desktop footer always at bottom, never overlaps */}

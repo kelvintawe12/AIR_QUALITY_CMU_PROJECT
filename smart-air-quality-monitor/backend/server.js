@@ -1,3 +1,6 @@
+// Store recent sensor readings in memory (circular buffer)
+const MAX_RECENT_READINGS = 100;
+let recentReadings = [];
 require('dotenv').config();
 const express = require('express');
 const chalk = require('chalk');
@@ -141,6 +144,19 @@ function connectToArduino() {
         coStatus,
         risk
       };
+
+      // Store in recent readings buffer
+      recentReadings.push(sensorData);
+      if (recentReadings.length > MAX_RECENT_READINGS) {
+        recentReadings.shift();
+      }
+// REST endpoint: /data/recent - get latest N readings
+app.get('/data/recent', (req, res) => {
+  const n = parseInt(req.query.n) || 20;
+  const data = recentReadings.slice(-n);
+  res.json({ count: data.length, readings: data });
+  console.log(chalk.blue(`[HTTP 200] /data/recent - Returned ${data.length} readings`));
+});
 
       const statusCode = 200;
       io.emit('sensorData', { ...sensorData, statusCode });

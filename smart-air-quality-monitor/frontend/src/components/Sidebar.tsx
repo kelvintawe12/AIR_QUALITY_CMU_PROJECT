@@ -16,27 +16,28 @@ interface SidebarProps {
 }
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const mainNavItems = [
-  {
-    path: '/',
-    icon: LayoutDashboard,
-    label: 'Dashboard'
-  },
-  {
-    path: '/history',
-    icon: Clock,
-    label: 'History'
-  },
-  {
-    path: '/alerts',
-    icon: Bell,
-    label: 'Alerts',
-    badge: '3'
-  },
-  {
-    path: '/analytics',
-    icon: LineChart,
-    label: 'Analytics'
-  }];
+    {
+      path: '/',
+      icon: LayoutDashboard,
+      label: 'Dashboard'
+    },
+    {
+      path: '/history',
+      icon: Clock,
+      label: 'History'
+    },
+    {
+      path: '/alerts',
+      icon: Bell,
+      label: 'Alerts',
+      badge: '3'
+    },
+    {
+      path: '/analytics',
+      icon: LineChart,
+      label: 'Analytics'
+    }
+  ];
 
   const bottomNavItems = [
   {
@@ -47,8 +48,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`hidden md:flex flex-col fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 z-30 pt-16 text-slate-300 transition-all duration-300 ease-in-out ${collapsed ? 'w-[72px]' : 'w-64'}`}>
-      
+      className={`hidden md:flex flex-col fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 z-30 pt-16 text-slate-300 transition-all duration-300 ease-in-out ${collapsed ? 'w-[72px]' : 'w-64'} min-h-screen`}>
       {/* Decorative top gradient */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-900/20 to-transparent pointer-events-none" />
 
@@ -177,7 +177,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* User Profile Footer */}
-      <div className="p-3 border-t border-slate-800 bg-slate-900/50 relative z-10">
+      <div className="p-3 border-t border-slate-800 bg-slate-900 relative z-10">
         <button
           className={`w-full flex items-center ${collapsed ? 'justify-center' : 'justify-between'} p-2 rounded-xl hover:bg-slate-800 transition-colors group`}>
           

@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { History } from './pages/History';
 import { Alerts } from './pages/Alerts';
 import { Profile } from './pages/Profile';
+import Analytics from './pages/Analytics';
 import { AnimatePresence } from 'framer-motion';
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,8 +41,8 @@ export function App() {
                 <Route path="/history" element={<History />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route
-              path="/analytics"
-              element={<Navigate to="/" replace />} />
+                  path="/analytics"
+                  element={<Analytics />} />
             
                 <Route
               path="/profile"

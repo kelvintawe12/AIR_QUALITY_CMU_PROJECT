@@ -1,413 +1,197 @@
-import React, { Children, createElement } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { useOutletContext, useNavigate } from 'react-router-dom';
-import {
-  Activity,
-  Thermometer,
-  Droplets,
-  Wind,
-  AlertTriangle,
-  CheckCircle2,
-  CloudFog,
-  RefreshCw,
-  Download,
-  MapPin,
-  Clock,
-  Bell,
-  Settings,
-  Share2,
-  HelpCircle } from
-'lucide-react';
-import { toast } from 'sonner';
+import { useOutletContext } from 'react-router-dom';
+import { 
+  Thermometer, Droplets, Wind, AlertTriangle, 
+  MapPin, Clock, Heart, User as UserIcon
+} from 'lucide-react';
 import { LiveCharts } from '../components/LiveCharts';
-import { SensorCard } from '../components/SensorCard';
-import { AppContextType } from '../components/AppLayout';
-import { AnalyticsStrip } from '../components/AnalyticsStrip';
-import { RiskRadarChart } from '../components/RiskRadarChart';
-import { RiskTimeline } from '../components/RiskTimeline';
-import { PollutantBreakdown } from '../components/PollutantBreakdown';
-import { HealthRecommendations } from '../components/HealthRecommendations';
+
 export function Dashboard() {
-  const { data, history, status } = useOutletContext<AppContextType>();
-  const navigate = useNavigate();
+  const { data, history, user } = useOutletContext<any>();
+
   if (!data) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-purple-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-medium">Connecting to sensors...</p>
-      </div>);
-
+      <div className="h-screen flex items-center justify-center bg-[#0f172a]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Connecting to sensors...</p>
+        </div>
+      </div>
+    );
   }
-  const isAlert = data.risk !== 'Safe' && data.risk !== 'Moderate Risk';
-  const getRiskColor = (risk: string) => {
+
+  const isDangerous = data.risk === 'High Risk' || data.risk === 'Asthma Risk' || data.risk === 'CO Poisoning Risk';
+
+  const getRiskEmoji = (risk: string) => {
     switch (risk) {
-      case 'Safe':
-        return 'bg-emerald-500';
-      case 'Moderate Risk':
-        return 'bg-amber-500';
-      case 'High Risk':
-        return 'bg-orange-500';
-      case 'Asthma Risk':
-        return 'bg-rose-500';
-      case 'CO Poisoning Risk':
-        return 'bg-red-600';
-      default:
-        return 'bg-slate-500';
+      case 'Safe': return '😊';
+      case 'Moderate Risk': return '😐';
+      case 'High Risk': return '😟';
+      case 'Asthma Risk': return '😷';
+      case 'CO Poisoning Risk': return '🥴';
+      default: return '😐';
     }
   };
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'GOOD':
-      case 'SAFE':
-        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      case 'MODERATE':
-        return 'text-amber-600 bg-amber-50 border-amber-200';
-      case 'POOR':
-      case 'WARNING':
-        return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'DANGEROUS':
-        return 'text-red-600 bg-red-50 border-red-200';
-      default:
-        return 'text-slate-600 bg-slate-50 border-slate-200';
-    }
-  };
-  const containerVariants = {
-    hidden: {
-      opacity: 0
-    },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
-    }
-  };
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: 20
-    },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: 'spring',
-        stiffness: 300,
-        damping: 24
-      }
-    }
-  };
-  const handleExport = () => {
-    const csvContent =
-    'data:text/csv;charset=utf-8,' +
-    'Timestamp,MQ135,MQ7,Temp,Humidity,eCO2,TVOC,Dust,Risk\n' +
-    history.
-    map(
-      (row) =>
-      `${row.timestamp},${row.mq135},${row.mq7},${row.temperature},${row.humidity},${row.eCO2},${row.TVOC},${row.dust},${row.risk}`
-    ).
-    join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `airpulse_data_${new Date().getTime()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Data exported successfully');
-  };
-  const quickActions = [
-  {
-    icon: Download,
-    label: 'Export Data',
-    onClick: handleExport,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50'
-  },
-  {
-    icon: Clock,
-    label: 'View History',
-    onClick: () => navigate('/history'),
-    color: 'text-purple-600',
-    bg: 'bg-purple-50'
-  },
-  {
-    icon: Bell,
-    label: 'Check Alerts',
-    onClick: () => navigate('/alerts'),
-    color: 'text-amber-600',
-    bg: 'bg-amber-50'
-  },
-  {
-    icon: Settings,
-    label: 'Calibrate',
-    onClick: () =>
-    toast.success(
-      'Sensor calibration started. This may take a few minutes.'
-    ),
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50'
-  },
-  {
-    icon: Share2,
-    label: 'Share Report',
-    onClick: () => toast.success('Report link copied to clipboard!'),
-    color: 'text-cyan-600',
-    bg: 'bg-cyan-50'
-  },
-  {
-    icon: HelpCircle,
-    label: 'Get Help',
-    onClick: () =>
-    toast.info('Click the chat bubble in the bottom right for support.'),
-    color: 'text-rose-600',
-    bg: 'bg-rose-50'
-  }];
 
   return (
-    <div className="pb-6 sm:pb-8">
-      {/* Alert Banner */}
-      {isAlert &&
-      <motion.div
-        initial={{
-          opacity: 0,
-          height: 0
-        }}
-        animate={{
-          opacity: 1,
-          height: 'auto'
-        }}
-        className="mx-4 sm:mx-6 lg:mx-8 mt-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl shadow-sm flex items-start">
-        
-          <AlertTriangle className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+    <div className="min-h-[100vh] bg-[#0a0f1c] text-white pb-10 overflow-auto w-full">
+      <div className="max-w-screen-2xl mx-auto">
+        {/* Header */}
+        <div className="px-4 sm:px-8 py-5 border-b border-slate-800 flex items-center justify-between bg-[#111827]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-xl">A</span>
+          </div>
           <div>
-            <h3 className="text-red-800 font-semibold text-sm">
-              Critical Alert: {data.risk}
-            </h3>
-            <p className="text-red-700 text-sm mt-1">
-              Dangerous levels detected in Kigali. Please ensure proper
-              ventilation immediately. MQ7 (CO): {data.mq7.toFixed(1)} ppm |
-              MQ135: {data.mq135.toFixed(0)}
+            <h1 className="text-2xl font-bold">Air Quality Dashboard</h1>
+            <p className="text-slate-400 text-sm flex items-center gap-1">
+              <MapPin className="w-4 h-4" /> Kigali, Rwanda
             </p>
           </div>
-        </motion.div>
-      }
+        </div>
 
-      {/* Clean Header */}
-      <div className="px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-              Live Dashboard
-            </h1>
-            <div className="flex items-center text-slate-500 text-sm mt-1.5 font-medium">
-              <MapPin className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-              Kigali, Rwanda
-              <span className="mx-2 text-slate-300">•</span>
-              <span className="text-emerald-600 flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                Live Sync Active
-              </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full object-cover border-2 border-purple-500" />
+            ) : (
+              <div className="w-9 h-9 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full flex items-center justify-center font-bold text-lg">
+                {user?.initials || <UserIcon className="w-6 h-6 text-white" />}
+              </div>
+            )}
+            <div className="text-left">
+              <p className="text-sm text-slate-200 font-semibold">{user?.name || 'User'}</p>
+              <p className="text-xs text-emerald-400">Live • Updated just now</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8">
-        {/* Analytics Summary Strip */}
-        <div className="mt-4">
-          <AnalyticsStrip history={history} />
-        </div>
+      <div className="p-4 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="space-y-6 mt-6">
-          
-          {/* Row 1: ML Risk Card + Sensor Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* ML Risk Prediction Card with Radar */}
-            <motion.div
-              variants={itemVariants}
-              className="lg:col-span-1 bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 overflow-hidden relative flex flex-col">
-              
-              <div
-                className={`absolute top-0 left-0 w-full h-2 ${getRiskColor(data.risk)}`}>
+          {/* Map Section */}
+          <div className="lg:col-span-8 bg-[#1e2937] rounded-3xl p-4 h-[380px] relative overflow-hidden min-w-0">
+            <div className="absolute top-4 left-4 bg-black/70 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 z-10">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              Live Air Quality Map - Kigali
+            </div>
+            
+            {/* Placeholder for actual map (you can replace with Leaflet/Google Maps later) */}
+            <div className="h-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl flex items-center justify-center border border-slate-700">
+              <div className="text-center">
+                <p className="text-slate-400 mb-2">🗺️ Interactive Map Area</p>
+                <p className="text-xs text-slate-500">Kigali City View with AQI Pins</p>
               </div>
-              <div className="p-6 flex-1 flex flex-col">
+            </div>
+          </div>
+
+          {/* Live AQI Index - Big Card */}
+          <div className="lg:col-span-4 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700 rounded-3xl p-6 flex flex-col min-w-0">
+            <h3 className="text-slate-400 text-sm font-medium mb-2">LIVE AIR QUALITY INDEX</h3>
+            
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="text-7xl font-bold text-white mb-2">
+                {Math.round((data.mq135 + data.mq7) / 8)}
+              </div>
+              <p className="text-xl font-semibold text-red-400">Unhealthy</p>
+              <div className="text-6xl mt-4 mb-6">
+                {getRiskEmoji(data.risk)}
+              </div>
+              <p className="text-center text-slate-300 text-lg font-medium">{data.risk}</p>
+            </div>
+
+            <div className="text-xs text-slate-500 text-center mt-auto pt-4 border-t border-slate-700">
+              Updated • {new Date(data.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+
+          {/* Environmental Data Cards */}
+          <div className="lg:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
+            <div className="bg-[#1e2937] rounded-2xl p-5 min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                  🌫️
+                </div>
                 <div>
-                  <h2 className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
-                    ML Risk Prediction
-                  </h2>
-                  <div className="flex items-center mt-3">
-                    {data.risk === 'Safe' ?
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mr-3" /> :
-
-                    <AlertTriangle
-                      className={`w-8 h-8 mr-3 ${isAlert ? 'text-red-500 animate-pulse' : 'text-amber-500'}`} />
-
-                    }
-                    <span className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
-                      {data.risk}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex-1 mt-4 -mx-4">
-                  <RiskRadarChart data={data} />
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex justify-between items-center text-xs sm:text-sm">
-                    <span className="text-slate-500">Last updated</span>
-                    <span className="font-medium text-slate-900">
-                      {new Date(data.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
+                  <p className="text-slate-400 text-sm">Air Quality</p>
+                  <p className="text-3xl font-bold">{data.mq135}</p>
+                  <p className="text-xs text-slate-500">MQ135</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Sensor Grid */}
-            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <SensorCard
-                title="Air Quality"
-                value={data.mq135.toFixed(0)}
-                unit="AQI"
-                icon={<Activity className="w-5 h-5" />}
-                status={data.aqStatus}
-                statusColor={getStatusColor(data.aqStatus)}
-                historyData={history.map((d) => d.mq135)} />
-              
-              <SensorCard
-                title="CO Level"
-                value={data.mq7.toFixed(1)}
-                unit="ppm"
-                icon={<CloudFog className="w-5 h-5" />}
-                status={data.coStatus}
-                statusColor={getStatusColor(data.coStatus)}
-                historyData={history.map((d) => d.mq7)} />
-              
-              <SensorCard
-                title="Temperature"
-                value={data.temperature.toFixed(1)}
-                unit="°C"
-                icon={<Thermometer className="w-5 h-5" />}
-                status="NORMAL"
-                statusColor="text-blue-600 bg-blue-50 border-blue-200"
-                historyData={history.map((d) => d.temperature)} />
-              
-              <SensorCard
-                title="Humidity"
-                value={data.humidity.toFixed(0)}
-                unit="%"
-                icon={<Droplets className="w-5 h-5" />}
-                status="NORMAL"
-                statusColor="text-blue-600 bg-blue-50 border-blue-200"
-                historyData={history.map((d) => d.humidity)} />
-              
-              <SensorCard
-                title="eCO2"
-                value={data.eCO2?.toFixed(0) || '0'}
-                unit="ppm"
-                icon={<Wind className="w-5 h-5" />}
-                status={data.eCO2 && data.eCO2 > 1000 ? 'HIGH' : 'NORMAL'}
-                statusColor={
-                data.eCO2 && data.eCO2 > 1000 ?
-                'text-amber-600 bg-amber-50 border-amber-200' :
-                'text-slate-600 bg-slate-50 border-slate-200'
-                }
-                historyData={history.map((d) => d.eCO2 || 0)} />
-              
-              <SensorCard
-                title="TVOC"
-                value={data.TVOC?.toFixed(0) || '0'}
-                unit="ppb"
-                icon={<Activity className="w-5 h-5" />}
-                status={data.TVOC && data.TVOC > 250 ? 'HIGH' : 'NORMAL'}
-                statusColor={
-                data.TVOC && data.TVOC > 250 ?
-                'text-amber-600 bg-amber-50 border-amber-200' :
-                'text-slate-600 bg-slate-50 border-slate-200'
-                }
-                historyData={history.map((d) => d.TVOC || 0)} />
-              
-              <SensorCard
-                title="Particulates"
-                value={data.dust?.toFixed(0) || '0'}
-                unit="µg/m³"
-                icon={<CloudFog className="w-5 h-5" />}
-                status={data.dust && data.dust > 50 ? 'HIGH' : 'NORMAL'}
-                statusColor={
-                data.dust && data.dust > 50 ?
-                'text-amber-600 bg-amber-50 border-amber-200' :
-                'text-slate-600 bg-slate-50 border-slate-200'
-                }
-                historyData={history.map((d) => d.dust || 0)} />
-              
-              <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-4 text-white flex flex-col justify-center items-center text-center shadow-md shadow-purple-500/20 relative overflow-hidden">
-                <span className="text-xs font-medium opacity-80 mb-1 uppercase tracking-wider">
-                  System Status
-                </span>
-                <span className="text-sm sm:text-base font-bold">
-                  All Sensors Active
-                </span>
-                <div className="mt-3 flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse delay-75"></span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse delay-150"></span>
+            <div className="bg-[#1e2937] rounded-2xl p-5 min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
+                  ☣️
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">CO Level</p>
+                  <p className="text-3xl font-bold">{data.mq7}</p>
+                  <p className="text-xs text-slate-500">MQ7 (ppm)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#1e2937] rounded-2xl p-5 min-w-0">
+              <div className="flex items-center gap-3">
+                <Thermometer className="w-10 h-10 text-orange-400" />
+                <div>
+                  <p className="text-slate-400 text-sm">Temperature</p>
+                  <p className="text-3xl font-bold">{data.temperature.toFixed(1)}°C</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#1e2937] rounded-2xl p-5 min-w-0">
+              <div className="flex items-center gap-3">
+                <Droplets className="w-10 h-10 text-sky-400" />
+                <div>
+                  <p className="text-slate-400 text-sm">Humidity</p>
+                  <p className="text-3xl font-bold">{data.humidity.toFixed(0)}%</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Row 2: Risk Timeline */}
-          <motion.div variants={itemVariants}>
-            <RiskTimeline history={history} />
-          </motion.div>
-
-          {/* Row 3: Pollutant Breakdown + Health Recommendations */}
-          <motion.div variants={itemVariants}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <PollutantBreakdown data={data} />
-              <HealthRecommendations risk={data.risk} />
-            </div>
-          </motion.div>
-
-          {/* Row 4: Live Charts */}
-          <motion.div variants={itemVariants}>
-            <LiveCharts history={history} />
-          </motion.div>
-
-          {/* Row 5: Quick Actions */}
-          <motion.div variants={itemVariants}>
-            <div>
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                Quick Actions
-              </h2>
-              <div className="flex overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 snap-x">
-                {quickActions.map((action, idx) =>
-                <button
-                  key={idx}
-                  onClick={action.onClick}
-                  className="flex-shrink-0 w-28 sm:w-auto flex flex-col items-center justify-center p-4 bg-white rounded-2xl ring-1 ring-slate-900/5 shadow-sm hover:shadow-md hover:ring-slate-900/10 transition-all snap-start group">
-                  
-                    <div
-                    className={`p-3 rounded-xl ${action.bg} ${action.color} mb-2 group-hover:scale-110 transition-transform`}>
-                    
-                      <action.icon className="w-5 h-5" />
+          {/* Health Tips + Forecast Area */}
+          <div className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+            {/* Health Recommendations */}
+            <div className="bg-[#1e2937] rounded-3xl p-6 min-w-0">
+              <h3 className="font-semibold text-lg mb-5 flex items-center gap-2">
+                <Heart className="text-red-400" /> Health Recommendations
+              </h3>
+              <div className="space-y-4 text-slate-300">
+                {isDangerous && (
+                  <>
+                    <div className="flex gap-3">
+                      <div className="text-red-400 mt-0.5">⚠️</div>
+                      <div>Avoid outdoor activities. Close windows and use air purifier if available.</div>
                     </div>
-                    <span className="text-xs font-semibold text-slate-700 text-center leading-tight group-hover:text-purple-700 transition-colors">
-                      {action.label}
-                    </span>
-                  </button>
+                    <div className="flex gap-3">
+                      <div className="text-red-400 mt-0.5">😷</div>
+                      <div>Wear N95 mask if going outside.</div>
+                    </div>
+                  </>
                 )}
+                <div className="flex gap-3">
+                  <div className="text-emerald-400 mt-0.5">💧</div>
+                  <div>Stay hydrated. High humidity + pollution can trigger respiratory issues.</div>
+                </div>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      </div>
-    </div>);
 
+            {/* Live Charts */}
+            <div className="bg-[#1e2937] rounded-3xl p-6 min-w-0">
+              <h3 className="font-semibold text-lg mb-4">24-Hour Trend</h3>
+              <LiveCharts history={history} />
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
 }

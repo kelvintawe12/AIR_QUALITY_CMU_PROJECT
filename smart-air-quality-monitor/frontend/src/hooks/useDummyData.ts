@@ -46,6 +46,14 @@ export function useDummyData() {
     'connected' | 'disconnected' | 'reconnecting'>(
     'reconnecting');
 
+  // Dummy user details
+  const user = {
+    name: 'AirPulse User',
+    email: 'user@airpulse.rw',
+    avatar: null, // You can set a URL here for a real avatar
+    initials: 'AP',
+  };
+
   useEffect(() => {
     // Simulate connection delay
     const connectTimer = setTimeout(() => {
@@ -126,5 +134,5 @@ export function useDummyData() {
     };
   }, []);
 
-  return { data, history, status };
+  return { data, history, status, user };
 }

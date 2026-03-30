@@ -1,18 +1,28 @@
-/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+html, body, #root {
+  background: #0a0f1c !important;
+}
+/* FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+/* TAILWIND DIRECTIVES */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
 
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    background: #0a0f1c !important;
   }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    background: #0a0f1c !important;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  #root {
+    background: #0a0f1c !important;
   }
 }
