@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Wind, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Toaster } from 'sonner';
-import { useDummyData } from '../hooks/useDummyData';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { MobileNav } from './MobileNav';
 import { AlertModal } from './AlertModal';
 import { Sidebar } from './Sidebar';
@@ -15,8 +15,8 @@ export interface AppContextType {
   status: 'connected' | 'disconnected' | 'reconnecting';
 }
 export function AppLayout() {
-  // Use dummy data for dashboard
-  const { data, history, status, user } = useDummyData();
+  // Use real data from backend
+  const { data, history, status } = useWebSocket('http://localhost:5050');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
     <div className="min-h-screen bg-[#0a0f1c] font-sans flex flex-col">
@@ -60,19 +60,7 @@ export function AppLayout() {
 
                 <div className="h-8 w-px bg-slate-800"></div>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-right hidden md:block">
-                    <p className="text-sm font-semibold text-white leading-none">
-                      AirPulse User
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      user@airpulse.rw
-                    </p>
-                  </div>
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 text-white flex items-center justify-center font-bold text-sm shadow-sm shadow-purple-500/20">
-                    AP
-                  </div>
-                </div>
+                {/* User info removed: now using real sensor data only */}
               </div>
             </div>
           </div>
@@ -115,8 +103,7 @@ export function AppLayout() {
               context={{
                 data,
                 history,
-                status,
-                user
+                status
               }} />
           </main>
           {/* Desktop footer always at bottom, never overlaps */}

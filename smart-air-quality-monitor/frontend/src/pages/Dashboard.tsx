@@ -8,7 +8,7 @@ import {
 import { LiveCharts } from '../components/LiveCharts';
 
 export function Dashboard() {
-  const { data, history, user } = useOutletContext<any>();
+  const { data, history } = useOutletContext<any>();
 
   if (!data) {
     return (
@@ -53,15 +53,11 @@ export function Dashboard() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full object-cover border-2 border-purple-500" />
-            ) : (
-              <div className="w-9 h-9 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full flex items-center justify-center font-bold text-lg">
-                {user?.initials || <UserIcon className="w-6 h-6 text-white" />}
-              </div>
-            )}
+            <div className="w-9 h-9 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full flex items-center justify-center font-bold text-lg">
+              <UserIcon className="w-6 h-6 text-white" />
+            </div>
             <div className="text-left">
-              <p className="text-sm text-slate-200 font-semibold">{user?.name || 'User'}</p>
+              <p className="text-sm text-slate-200 font-semibold">Air Quality Monitor</p>
               <p className="text-xs text-emerald-400">Live • Updated just now</p>
             </div>
           </div>
