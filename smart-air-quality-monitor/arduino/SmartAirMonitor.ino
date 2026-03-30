@@ -1,84 +1,103 @@
 #include <DHT.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+// #include <LiquidCrystal_I2C.h>
 
-#define DHTPIN 2
-#define DHTTYPE DHT22
+// ================== PIN DEFINITIONS ==================
+#define MQ135_PIN   A0
+#define MQ7_PIN     A1
+#define DHTPIN      2
+#define DHTTYPE     DHT22
+
+// LCD I2C address (most common is 0x27, some are 0x3F)
+// LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// ================== CONFIGURATION ==================
+#define VREF        3.3
+
+#define PRINT_INTERVAL     3000
+
+// Thresholds
+#define MQ135_GOOD      150
+#define MQ135_MODERATE  300
+#define MQ135_POOR      550
+
+#define MQ7_SAFE        150
+#define MQ7_WARNING     350
+#define MQ7_DANGEROUS   600
+// ===================================================
 
 DHT dht(DHTPIN, DHTTYPE);
-LiquidCrystal_I2C lcd(0x27, 16, 2);   // Change to 0x3F if LCD not working
 
-const int MQ135_PIN = A0;
-const int MQ7_PIN = A1;
+unsigned long lastPrint = 0;
+bool sensorsReady = false;
 
 void setup() {
   Serial.begin(9600);
+  while (!Serial);
+
+  // LCD initialization skipped for Nano 33 BLE compatibility
+
+  Serial.println(F("=============================================="));
+  Serial.println(F("   SMART AIR QUALITY MONITORING SYSTEM"));
+  Serial.println(F("   MQ-135 + MQ-7 + DHT22 + LCD"));
+  Serial.println(F("=============================================="));
+
   dht.begin();
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Smart Air Monitor");
-  delay(2000);
+  pinMode(DHTPIN, INPUT_PULLUP);        // Important for no external resistor
+
+  Serial.println(F("Warming up sensors (30 sec)..."));
+  for (int i = 30; i > 0; i--) {
+    Serial.print(i); Serial.println(F(" sec"));
+    delay(1000);
+  }
+
+  sensorsReady = true;
+  Serial.println(F("\nSystem Ready!\n"));
   lcd.clear();
-
-  Serial.println("=== Smart Air Quality & Health Risk System ===");
-  Serial.println("MQ135 | MQ7 | Temperature | Humidity | AQ_Status | CO_Status");
-}
-
-String getAQStatus(int val) {
-  if (val < 300) return "GOOD";
-  else if (val < 500) return "MODERATE";
-  else if (val < 700) return "POOR";
-  else return "DANGEROUS";
-}
-
-String getCOStatus(int val) {
-  if (val < 200) return "SAFE";
-  else if (val < 400) return "WARNING";
-  else return "DANGEROUS";
 }
 
 void loop() {
-  float humidity = dht.readHumidity();
-  float temperature = dht.readTemperature();
-  int mq135Value = analogRead(MQ135_PIN);
-  int mq7Value = analogRead(MQ7_PIN);
+  unsigned long currentMillis = millis();
 
-  if (isnan(humidity) || isnan(temperature)) {
-    Serial.println("DHT sensor error!");
-    delay(2000);
-    return;
+  int rawMQ135 = analogRead(MQ135_PIN);
+  int rawMQ7   = analogRead(MQ7_PIN);
+  float voltMQ135 = rawMQ135 * (VREF / 1023.0);
+  float voltMQ7   = rawMQ7   * (VREF / 1023.0);
+
+  float temperature = NAN;
+  float humidity = NAN;
+
+  // Read DHT with retries
+  for (int i = 0; i < 5; i++) {
+    temperature = dht.readTemperature();
+    humidity    = dht.readHumidity();
+    if (!isnan(temperature) && !isnan(humidity)) break;
+    delay(200);
   }
 
-  String aqStatus = getAQStatus(mq135Value);
-  String coStatus = getCOStatus(mq7Value);
+  // Print every 3 seconds
+  if (sensorsReady && (currentMillis - lastPrint >= PRINT_INTERVAL)) {
+    lastPrint = currentMillis;
 
-  Serial.print(mq135Value);
-  Serial.print(" | ");
-  Serial.print(mq7Value);
-  Serial.print(" | ");
-  Serial.print(temperature, 1);
-  Serial.print("°C | ");
-  Serial.print(humidity, 1);
-  Serial.print("% | ");
-  Serial.print(aqStatus);
-  Serial.print(" | ");
-  Serial.println(coStatus);
+    // Only print if DHT22 readings are valid
+    if (!isnan(temperature) && !isnan(humidity)) {
+      // Format: mq135|mq7|temperature°C|humidity%|aqStatus|coStatus\n
+      String aqStatus = (rawMQ135 < MQ135_GOOD) ? "GOOD" : (rawMQ135 < MQ135_MODERATE) ? "MODERATE" : (rawMQ135 < MQ135_POOR) ? "POOR" : "DANGEROUS";
+      String coStatus = (rawMQ7 < MQ7_SAFE) ? "SAFE" : (rawMQ7 < MQ7_WARNING) ? "WARNING" : "DANGEROUS";
 
-  // LCD Display
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("AQ:");
-  lcd.print(aqStatus);
-  lcd.print(" ");
-  lcd.print(temperature, 1);
-  lcd.print("C");
+      Serial.print(rawMQ135);
+      Serial.print("|");
+      Serial.print(rawMQ7);
+      Serial.print("|");
+      Serial.print(temperature, 1);
+      Serial.print("°C|");
+      Serial.print(humidity, 1);
+      Serial.print("%|");
+      Serial.print(aqStatus);
+      Serial.print("|");
+      Serial.println(coStatus);
+    }
 
-  lcd.setCursor(0, 1);
-  lcd.print("H:");
-  lcd.print(humidity, 1);
-  lcd.print("% CO:");
-  lcd.print(coStatus.substring(0, 3));
-
-  delay(2000);
+    // LCD output skipped for Nano 33 BLE compatibility
+  }
 }

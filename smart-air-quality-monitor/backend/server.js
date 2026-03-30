@@ -131,6 +131,16 @@ function connectToArduino() {
       const aqStatus = parts[4];
       const coStatus = parts[5];
 
+      // Debug: Print parsed sensor data
+      console.log('[DEBUG] Parsed Sensor Data:', {
+        mq135,
+        mq7,
+        temperature,
+        humidity,
+        aqStatus,
+        coStatus
+      });
+
       // Get REAL ML prediction
       const risk = await getRiskPrediction(mq135, mq7, temperature, humidity);
 
